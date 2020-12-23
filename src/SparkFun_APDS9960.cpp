@@ -57,7 +57,7 @@ bool SparkFun_APDS9960::init()
     uint8_t id;
 
     /* Initialize I2C */
-    Wire.begin();
+    //Wire.begin();
      
     /* Read ID register and check against known values for APDS-9960 */
     if( !wireReadDataByte(APDS9960_ID, id) ) {
@@ -396,7 +396,8 @@ bool SparkFun_APDS9960::enableGestureSensor(bool interrupts)
     if( !wireWriteDataByte(APDS9960_PPULSE, DEFAULT_GESTURE_PPULSE) ) {
         return false;
     }
-    if( !setLEDBoost(LED_BOOST_300) ) {
+    //if( !setLEDBoost(LED_BOOST_300) ) {
+    if( !setLEDBoost(LED_BOOST_100) ) {
         return false;
     }
     if( interrupts ) {
