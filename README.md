@@ -1,4 +1,18 @@
-SparkFun APDS9960 RGB and Gesture Sensor Arduino Library
+Modified SparkFun APDS9960 RGB and Gesture Sensor Arduino Library to use gesture feature with an esp8266 ( tested on wemos d1 mini)
+---------------
+original library from SparkFun: https://github.com/sparkfun/SparkFun_APDS-9960_Sensor_Arduino_Library
+
+I first used the modified library by Jon https://github.com/jonn26/SparkFun_APDS-9960_Sensor_Arduino_Library but this one doesn't work anymore wit the new esp8266 library (Interrupt callback functions must be in IRAM)
+
+Jon's modifications:
+Removing wire.begin() from SparkFun_APDS9960.cpp and moving it into the examples so that the pins it uses can be specified in your sketch
+Changed the LED_BOOST_300 to LED_BOOST_100 in SparkFun_APDS9960.cpp as I couldn't get the gesture sensor to work without changing this
+
+My modfifications:
+- Interrupt callback functions in IRAM (void ICACHE_RAM_ATTR interruptRoutine ();)
+- use digitalPinToInterrupt(GPIO) in attachInterrupt and detachInterrupt
+- use GPIO number
+
 =========================================================
 
 ![Avago APDS-9960 Breakout Board - SEN-12787 ](https://cdn.sparkfun.com/r/92-92/assets/parts/9/6/0/3/12787-01.jpg)
@@ -24,9 +38,9 @@ Getting Started
 |---|---|---| 
 | 3.3V | VCC | Power |
 | GND | GND | Ground |
-| A4 | SDA | I2C Data |
-| A5 | SCL | I2C Clock |
-| 2 | INT | Interrupt |
+| D2 | SDA | I2C Data |
+| D1 | SCL | I2C Clock |
+| D6 | INT | Interrupt |
 
 * Go to Tools -> Board and select your Arduino board
 * Go to Tools -> Serial Port and select the COM port of your Arduino board
