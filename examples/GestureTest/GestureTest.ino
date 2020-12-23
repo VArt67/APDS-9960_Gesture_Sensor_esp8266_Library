@@ -23,13 +23,13 @@ Hardware Connections:
 
 IMPORTANT: The APDS-9960 can only accept 3.3V!
  
- Arduino Pin  APDS-9960 Board  Function
+ wemos D1 mini Pin  APDS-9960 Board  Function
  
  3.3V         VCC              Power
  GND          GND              Ground
- A4           SDA              I2C Data
- A5           SCL              I2C Clock
- 2            INT              Interrupt
+ D2           SDA              I2C Data
+ D1           SCL              I2C Clock
+ D6           INT              Interrupt
 
 Resources:
 Include Wire.h and SparkFun_APDS-9960.h
@@ -43,34 +43,49 @@ employee) at the local, and you've found our code helpful, please
 buy us a round!
 
 Distributed as-is; no warranty is given.
+
+Modified for ESP8266 by Jon Ulmer Nov 2016 then adapted by dgemily Dec 2020 for the new ESP8266 library
+
+Modified:
+- added wire.begin to configure pin
+- Interrupt callback functions in IRAM (required for the new ESP8266 libary) by dgemily Dec 2020
+- use digitalPinToInterrupt(GPIO) in attachInterrupt and detachInterrupt by dgemily Dec 2020
+- use GPIO number by dgemily Dec 2020
+
 ****************************************************************/
 
 #include <Wire.h>
 #include <SparkFun_APDS9960.h>
 
-// Pins
-#define APDS9960_INT    2 // Needs to be an interrupt pin
-
+// Pins on wemos D1 mini
+#define APDS9960_SDA    4  //GPIO4 (D2)
+#define APDS9960_SCL    5  //GPIO5 (D1)
 // Constants
+const byte APDS9960_INT  = 12; //GPIO12 (D6)
 
 // Global Variables
 SparkFun_APDS9960 apds = SparkFun_APDS9960();
-int isr_flag = 0;
+volatile bool isr_flag = 0;
+
+//Interrupt callback function in IRAM
+void ICACHE_RAM_ATTR interruptRoutine ();
 
 void setup() {
+   //Start I2C with pins defined above
+  Wire.begin(APDS9960_SDA,APDS9960_SCL);
 
   // Set interrupt pin as input
-  pinMode(APDS9960_INT, INPUT);
+  pinMode(digitalPinToInterrupt(APDS9960_INT), INPUT);
 
   // Initialize Serial port
-  Serial.begin(9600);
+  Serial.begin(115200);
   Serial.println();
   Serial.println(F("--------------------------------"));
   Serial.println(F("SparkFun APDS-9960 - GestureTest"));
   Serial.println(F("--------------------------------"));
   
   // Initialize interrupt service routine
-  attachInterrupt(0, interruptRoutine, FALLING);
+  attachInterrupt(digitalPinToInterrupt(APDS9960_INT), interruptRoutine, FALLING);
 
   // Initialize APDS-9960 (configure I2C and initial values)
   if ( apds.init() ) {
@@ -89,10 +104,10 @@ void setup() {
 
 void loop() {
   if( isr_flag == 1 ) {
-    detachInterrupt(0);
+    detachInterrupt(digitalPinToInterrupt(APDS9960_INT));
     handleGesture();
     isr_flag = 0;
-    attachInterrupt(0, interruptRoutine, FALLING);
+    attachInterrupt(digitalPinToInterrupt(APDS9960_INT), interruptRoutine, FALLING);
   }
 }
 
