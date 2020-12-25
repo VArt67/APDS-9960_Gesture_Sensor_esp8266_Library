@@ -16,6 +16,7 @@ My modfifications:
 https://youtu.be/wVlEgI6dl6g
 
 =========================================================
+
 Original information from sparkfun:
 
 ![Avago APDS-9960 Breakout Board - SEN-12787 ](https://cdn.sparkfun.com/r/92-92/assets/parts/9/6/0/3/12787-01.jpg)
