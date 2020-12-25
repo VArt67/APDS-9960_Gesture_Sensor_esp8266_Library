@@ -2,7 +2,7 @@ Modified SparkFun APDS9960 RGB and Gesture Sensor Arduino Library to use gesture
 ---------------
 original library from SparkFun: https://github.com/sparkfun/SparkFun_APDS-9960_Sensor_Arduino_Library
 
-I first used the modified library by Jon https://github.com/jonn26/SparkFun_APDS-9960_Sensor_Arduino_Library but this one doesn't work anymore wit the new esp8266 library (Interrupt callback functions must be in IRAM)
+I first used the modified library from Jon https://github.com/jonn26/SparkFun_APDS-9960_Sensor_Arduino_Library but this one doesn't work anymore wit the new esp8266 library (Interrupt callback functions must be in IRAM)
 
 Jon's modifications:
 Removing wire.begin() from SparkFun_APDS9960.cpp and moving it into the examples so that the pins it uses can be specified in your sketch
@@ -13,7 +13,10 @@ My modfifications:
 - use digitalPinToInterrupt(GPIO) in attachInterrupt and detachInterrupt
 - use GPIO number
 
+https://youtu.be/wVlEgI6dl6g
+
 =========================================================
+Original information from sparkfun:
 
 ![Avago APDS-9960 Breakout Board - SEN-12787 ](https://cdn.sparkfun.com/r/92-92/assets/parts/9/6/0/3/12787-01.jpg)
 
