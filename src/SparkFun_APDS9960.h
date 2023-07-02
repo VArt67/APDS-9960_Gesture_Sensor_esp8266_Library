@@ -203,10 +203,10 @@ enum {
 
 /* State definitions */
 enum {
-  NA_STATE,
-  NEAR_STATE,
-  FAR_STATE,
-  ALL_STATE
+  APDS_NA_STATE,
+  APDS_NEAR_STATE,
+  APDS_FAR_STATE,
+  APDS_ALL_STATE
 };
 
 /* Container for gesture data */
