@@ -935,9 +935,9 @@ bool SparkFun_APDS9960::processGestureData()
             
             if( (gesture_near_count_ >= 10) && (gesture_far_count_ >= 2) ) {
                 if( (ud_delta == 0) && (lr_delta == 0) ) {
-                    gesture_state_ = NEAR_STATE;
+                    gesture_state_ = APDS_NEAR_STATE;
                 } else if( (ud_delta != 0) && (lr_delta != 0) ) {
-                    gesture_state_ = FAR_STATE;
+                    gesture_state_ = APDS_FAR_STATE;
                 }
                 return true;
             }
@@ -982,10 +982,10 @@ bool SparkFun_APDS9960::processGestureData()
 bool SparkFun_APDS9960::decodeGesture()
 {
     /* Return if near or far event is detected */
-    if( gesture_state_ == NEAR_STATE ) {
+    if( gesture_state_ == APDS_NEAR_STATE ) {
         gesture_motion_ = DIR_NEAR;
         return true;
-    } else if ( gesture_state_ == FAR_STATE ) {
+    } else if ( gesture_state_ == APDS_FAR_STATE ) {
         gesture_motion_ = DIR_FAR;
         return true;
     }
