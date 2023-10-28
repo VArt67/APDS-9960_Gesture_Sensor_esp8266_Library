@@ -32,7 +32,8 @@
 
 /* Acceptable device IDs */
 #define APDS9960_ID_1           0xAB
-#define APDS9960_ID_2           0x9C 
+#define APDS9960_ID_2           0x9C
+#define APDS9960_ID_3           0xA8
 
 /* Misc parameters */
 #define FIFO_PAUSE_TIME         30      // Wait period (ms) between FIFO reads
@@ -203,10 +204,10 @@ enum {
 
 /* State definitions */
 enum {
-  APDS_NA_STATE,
-  APDS_NEAR_STATE,
-  APDS_FAR_STATE,
-  APDS_ALL_STATE
+  NA_STATE,
+  NEAR_STATE,
+  FAR_STATE,
+  ALL_STATE
 };
 
 /* Container for gesture data */
@@ -231,8 +232,13 @@ public:
     bool init();
     uint8_t getStatusRegister();
     uint8_t getMode();
+    bool setMode(uint8_t reg_val);
+    bool getMode(uint8_t mode, uint8_t &enable);
     bool setMode(uint8_t mode, uint8_t enable);
-    
+
+    bool disableInterrupts();
+    bool restoreInterrupts();
+
     /* Turn the APDS-9960 on and off */
     bool enablePower();
     bool disablePower();
@@ -282,6 +288,7 @@ public:
     /* Clear interrupts */
     bool clearAmbientLightInt();
     bool clearProximityInt();
+    bool clearAlsClearChannelInt();
     
     /* Ambient light methods */
     bool readAmbientLight(uint16_t &val);
@@ -295,13 +302,10 @@ public:
     /* Gesture methods */
     bool isGestureAvailable();
     int readGesture();
-    
-private:
 
-    /* Gesture processing */
-    void resetGestureParameters();
-    bool processGestureData();
-    bool decodeGesture();
+    /* Gesture mode */
+    uint8_t getGestureMode();
+    bool setGestureMode(uint8_t mode);
 
     /* Proximity Interrupt Threshold */
     uint8_t getProxIntLowThresh();
@@ -328,10 +332,12 @@ private:
     /* Gesture LED, gain, and time control */
     uint8_t getGestureWaitTime();
     bool setGestureWaitTime(uint8_t time);
-    
-    /* Gesture mode */
-    uint8_t getGestureMode();
-    bool setGestureMode(uint8_t mode);
+
+private:
+    /* Gesture processing */
+    void resetGestureParameters();
+    bool processGestureData();
+    bool decodeGesture();
 
     /* Raw I2C Commands */
     bool wireWriteByte(uint8_t val);
@@ -341,6 +347,10 @@ private:
     int wireReadDataBlock(uint8_t reg, uint8_t *val, unsigned int len);
 
     /* Members */
+    uint8_t m_ALSIntStore;
+    uint8_t m_ProximityIntStore;
+    uint8_t m_gestureIntStore;
+
     gesture_data_type gesture_data_;
     int gesture_ud_delta_;
     int gesture_lr_delta_;

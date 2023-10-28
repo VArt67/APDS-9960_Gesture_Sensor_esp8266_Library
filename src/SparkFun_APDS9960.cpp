@@ -2,9 +2,12 @@
  * @file    SparkFun_APDS-9960.cpp
  * @brief   Library for the SparkFun APDS-9960 breakout board
  * @author  Shawn Hymel (SparkFun Electronics)
- *
+ * @extended Volker Artmann
+ * 
  * @copyright	This code is public domain but you buy me a beer if you use
  * this and we meet someday (Beerware license).
+ *
+ * See https://cdn.sparkfun.com/assets/learn_tutorials/3/2/1/Avago-APDS-9960-datasheet.pdf
  *
  * This library interfaces the Avago APDS-9960 to Arduino over I2C. The library
  * relies on the Arduino Wire (I2C) library. to use the library, instantiate an
@@ -15,17 +18,21 @@
  *   Waiting for gesture:   14mA
  *   Gesture in progress:   35mA
  */
- 
- #include <Arduino.h>
- #include <Wire.h>
- 
- #include "SparkFun_APDS9960.h"
+
+#include <Arduino.h>
+#include <Wire.h>
+
+#include "SparkFun_APDS9960.h"
  
 /**
  * @brief Constructor - Instantiates SparkFun_APDS9960 object
  */
 SparkFun_APDS9960::SparkFun_APDS9960()
 {
+    m_ALSIntStore = 0;
+    m_ProximityIntStore = 0;
+    m_gestureIntStore = 0;
+
     gesture_ud_delta_ = 0;
     gesture_lr_delta_ = 0;
     
@@ -63,32 +70,41 @@ bool SparkFun_APDS9960::init()
     if( !wireReadDataByte(APDS9960_ID, id) ) {
         return false;
     }
-    if( !(id == APDS9960_ID_1 || id == APDS9960_ID_2) ) {
+    if (!(id == APDS9960_ID_1 || id == APDS9960_ID_2 || id == APDS9960_ID_3))
+    {
+        Serial.println(F("wrong id "));
+        Serial.println(String(id));
         return false;
     }
-     
+
     /* Set ENABLE register to 0 (disable all features) */
     if( !setMode(ALL, OFF) ) {
         return false;
     }
     
     /* Set default values for ambient light and proximity registers */
-    if( !wireWriteDataByte(APDS9960_ATIME, DEFAULT_ATIME) ) {
+    // ATime (ADC integration time, 2.78ms increments, 0x81) -> 0xDB (103ms)
+    if (!wireWriteDataByte(APDS9960_ATIME, DEFAULT_ATIME))    {
         return false;
     }
-    if( !wireWriteDataByte(APDS9960_WTIME, DEFAULT_WTIME) ) {
+    // WTime (Wait time, 0x83) -> 0xF6 (27ms)
+    if (!wireWriteDataByte(APDS9960_WTIME, DEFAULT_WTIME))    {
         return false;
     }
-    if( !wireWriteDataByte(APDS9960_PPULSE, DEFAULT_PROX_PPULSE) ) {
+    // PPulse (0x8E) -> 0x87 (16us, 8 pulses)
+    if (!wireWriteDataByte(APDS9960_PPULSE, DEFAULT_PROX_PPULSE))    {
         return false;
     }
-    if( !wireWriteDataByte(APDS9960_POFFSET_UR, DEFAULT_POFFSET_UR) ) {
+    // POffset UR (0x9D) -> 0 (no offset)
+    if (!wireWriteDataByte(APDS9960_POFFSET_UR, DEFAULT_POFFSET_UR))    {
         return false;
     }
-    if( !wireWriteDataByte(APDS9960_POFFSET_DL, DEFAULT_POFFSET_DL) ) {
+    // POffset DL (0x9E) -> 0 (no offset)
+    if (!wireWriteDataByte(APDS9960_POFFSET_DL, DEFAULT_POFFSET_DL))    {
         return false;
     }
-    if( !wireWriteDataByte(APDS9960_CONFIG1, DEFAULT_CONFIG1) ) {
+    // Config 1 (0x8D) -> 0x60 (no wtime factor)
+    if (!wireWriteDataByte(APDS9960_CONFIG1, DEFAULT_CONFIG1))    {
         return false;
     }
     if( !setLEDDrive(DEFAULT_LDRIVE) ) {
@@ -141,22 +157,29 @@ bool SparkFun_APDS9960::init()
     if( !setGestureWaitTime(DEFAULT_GWTIME) ) {
         return false;
     }
-    if( !wireWriteDataByte(APDS9960_GOFFSET_U, DEFAULT_GOFFSET) ) {
+    // GOffsetU (0xA4) -> 0x00 (no offset)
+    if (!wireWriteDataByte(APDS9960_GOFFSET_U, DEFAULT_GOFFSET))    {
         return false;
     }
-    if( !wireWriteDataByte(APDS9960_GOFFSET_D, DEFAULT_GOFFSET) ) {
+    // GOffsetD (0xA5) -> 0x00 (no offset)
+    if (!wireWriteDataByte(APDS9960_GOFFSET_D, DEFAULT_GOFFSET))    {
         return false;
     }
-    if( !wireWriteDataByte(APDS9960_GOFFSET_L, DEFAULT_GOFFSET) ) {
+    // GOffsetL (0xA7) -> 0x00 (no offset)
+    if (!wireWriteDataByte(APDS9960_GOFFSET_L, DEFAULT_GOFFSET))    {
         return false;
     }
-    if( !wireWriteDataByte(APDS9960_GOFFSET_R, DEFAULT_GOFFSET) ) {
+    // GOffsetR (0xA9) -> 0x00 (no offset)
+    if (!wireWriteDataByte(APDS9960_GOFFSET_R, DEFAULT_GOFFSET))    {
         return false;
     }
-    if( !wireWriteDataByte(APDS9960_GPULSE, DEFAULT_GPULSE) ) {
+    // GPulse (0xA6) -> 0xC9 (32 µs, 10 pulses)
+    if (!wireWriteDataByte(APDS9960_GPULSE, DEFAULT_GPULSE))    {
         return false;
     }
-    if( !wireWriteDataByte(APDS9960_GCONF3, DEFAULT_GCONF3) ) {
+    // GConf 3 (0xAA, gesture config 3) -> 0x00 (all photodiodes active during gesture, all gesture dimensions enabled)
+    // 0x00 -> all dimensions, 0x01 -> up down, 0x02 -> left right
+    if (!wireWriteDataByte(APDS9960_GCONF3, DEFAULT_GCONF3))    {
         return false;
     }
     if( !setGestureIntEnable(DEFAULT_GIEN) ) {
@@ -233,7 +256,67 @@ uint8_t SparkFun_APDS9960::getMode()
 }
 
 /**
+ * @brief Sets contents to the ENABLE register
+ *
+ * @param[in] reg_val to write
+ * @return True if operation success. False otherwise.
+ */
+bool SparkFun_APDS9960::setMode(uint8_t reg_val)
+{
+    if (!wireWriteDataByte(APDS9960_ENABLE, reg_val))
+    {
+        return false;
+    }
+    return true;
+}
+
+/**
+ * @brief Reads enable or disables of a feature in the APDS-9960
+ *
+ * mode=0: power on
+ * mode=1: color_enable (AMBIENT_LIGHT)
+ * mode=2: proximity_enable
+ * mode=3: wait timer enable,
+ * mode=4: color interrupt enable
+ * mode=5: proximity interrupt enable
+ * mode=6: gesture_enable (proximity_enable also required!)
+ *
+ * @param[in] mode which read feature
+ * @param[out] enable ON (1) or OFF (0)
+ * @return True if operation success. False otherwise.
+ */
+bool SparkFun_APDS9960::getMode(uint8_t mode, uint8_t &enable)
+{
+    uint8_t reg_val;
+
+    /* Read current ENABLE register */
+    reg_val = getMode();
+    if (reg_val == ERROR)
+        return false;
+
+    /* Check bit(s) in ENABLE register */
+    enable = 0;
+    if (mode >= 0 && mode <= 6)
+    {
+        enable = (reg_val & (1 << mode));
+    }
+    else if (mode == ALL)
+    {
+        enable = (reg_val & 0x7F);
+    }
+    return true;
+}
+
+/**
  * @brief Enables or disables a feature in the APDS-9960
+ *
+ * mode=0: power on 
+ * mode=1: color_enable (AMBIENT_LIGHT)
+ * mode=2: proximity_enable
+ * mode=3: wait timer enable, 
+ * mode=4: color interrupt enable
+ * mode=5: proximity interrupt enable
+ * mode=6: gesture_enable (proximity_enable also required!)
  *
  * @param[in] mode which feature to enable
  * @param[in] enable ON (1) or OFF (0)
@@ -266,11 +349,50 @@ bool SparkFun_APDS9960::setMode(uint8_t mode, uint8_t enable)
     }
         
     /* Write value back to ENABLE register */
-    if( !wireWriteDataByte(APDS9960_ENABLE, reg_val) ) {
-        return false;
-    }
-        
-    return true;
+    return setMode(reg_val);
+}
+
+/**
+ * @brief Disables all interrupts of the APDS-9960
+ *        (see getMode()/setMode())
+ *        Internally stores the actual enabled interrupts
+ *        before disable.
+ *        Use "restoreInterrupts()" to enable stored interrupt
+ *        mask again.
+ * @return True if operation success. False otherwise.
+ */
+bool SparkFun_APDS9960::disableInterrupts()
+{
+    bool ret=true;
+
+    uint8_t reg_val = getMode();
+    m_ALSIntStore       = reg_val & (1 << AMBIENT_LIGHT_INT);
+    m_ProximityIntStore = reg_val & (1 << PROXIMITY_INT);
+
+    reg_val &= ~(1 << AMBIENT_LIGHT_INT);
+    reg_val &= ~(1 << PROXIMITY_INT);
+    ret = ret && setMode(reg_val);
+
+    m_gestureIntStore=getGestureIntEnable();
+    ret = ret && setGestureIntEnable(0);
+
+    return ret;
+}
+
+/**
+ * @brief Restores all interrupts which were disabled by
+ *        previous disableInterrupts() call.
+ * @return True if operation success. False otherwise.
+ */
+bool SparkFun_APDS9960::restoreInterrupts()
+{
+    bool ret = true;
+    uint8_t reg_val = getMode();
+    reg_val |= m_ALSIntStore;
+    reg_val |= m_ProximityIntStore;
+    ret = ret && setMode(reg_val);
+    ret = ret && setGestureIntEnable(m_gestureIntStore);
+    return ret;
 }
 
 /**
@@ -390,13 +512,21 @@ bool SparkFun_APDS9960::enableGestureSensor(bool interrupts)
        Enable PON, WEN, PEN, GEN in ENABLE 
     */
     resetGestureParameters();
-    if( !wireWriteDataByte(APDS9960_WTIME, 0xFF) ) {
+    // Reset WTime for non-gesture (Wait time, 0x83) -> 0xFF (0.03 s)
+    if (!wireWriteDataByte(APDS9960_WTIME, 0xFF))    {
         return false;
     }
-    if( !wireWriteDataByte(APDS9960_PPULSE, DEFAULT_GESTURE_PPULSE) ) {
+    // PPulse (0x8E) -> 0x89 (16us, 10 pulses)
+    if (!wireWriteDataByte(APDS9960_PPULSE, DEFAULT_GESTURE_PPULSE))    {
         return false;
     }
-    //if( !setLEDBoost(LED_BOOST_300) ) {
+    // Gesture has seperate register
+    // GPulse (0xA6) -> 0x89 (16us, 10 pulses)
+    if (!wireWriteDataByte(APDS9960_GPULSE, DEFAULT_GESTURE_PPULSE))
+    {
+        return false;
+    }
+    // if( !setLEDBoost(LED_BOOST_300) ) {
     if( !setLEDBoost(LED_BOOST_100) ) {
         return false;
     }
@@ -935,9 +1065,9 @@ bool SparkFun_APDS9960::processGestureData()
             
             if( (gesture_near_count_ >= 10) && (gesture_far_count_ >= 2) ) {
                 if( (ud_delta == 0) && (lr_delta == 0) ) {
-                    gesture_state_ = APDS_NEAR_STATE;
+                    gesture_state_ = NEAR_STATE;
                 } else if( (ud_delta != 0) && (lr_delta != 0) ) {
-                    gesture_state_ = APDS_FAR_STATE;
+                    gesture_state_ = FAR_STATE;
                 }
                 return true;
             }
@@ -982,10 +1112,10 @@ bool SparkFun_APDS9960::processGestureData()
 bool SparkFun_APDS9960::decodeGesture()
 {
     /* Return if near or far event is detected */
-    if( gesture_state_ == APDS_NEAR_STATE ) {
+    if( gesture_state_ == NEAR_STATE ) {
         gesture_motion_ = DIR_NEAR;
         return true;
-    } else if ( gesture_state_ == APDS_FAR_STATE ) {
+    } else if ( gesture_state_ == FAR_STATE ) {
         gesture_motion_ = DIR_FAR;
         return true;
     }
@@ -2054,10 +2184,27 @@ bool SparkFun_APDS9960::clearAmbientLightInt()
 bool SparkFun_APDS9960::clearProximityInt()
 {
     uint8_t throwaway;
-    if( !wireReadDataByte(APDS9960_PICLEAR, throwaway) ) {
+    if (!wireReadDataByte(APDS9960_PICLEAR, throwaway))
+    {
         return false;
     }
-    
+
+    return true;
+}
+
+/**
+ * @brief ALS clear channel interrupt clear
+ *
+ * @return True if operation completed successfully. False otherwise.
+ */
+bool SparkFun_APDS9960::clearAlsClearChannelInt()
+{
+    uint8_t throwaway;
+    if (!wireReadDataByte(APDS9960_CICLEAR, throwaway))
+    {
+        return false;
+    }
+
     return true;
 }
 
