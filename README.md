@@ -4,7 +4,8 @@ Modified SparkFun APDS9960 RGB and Gesture Sensor Arduino Library to use gesture
 
 
 forked from: https://github.com/VictorSvetogor/APDS-9960_Gesture_Sensor_esp8266_Library
-follow the forks to get instruction how to wire and how to use this library
+
+Follow the forks to get instruction how to wire and how to use this library
 
 
 
